@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::process::Stdio;
 
 /// Contains the `Job` struct, which is used to represent a job in the shell.
 /// - `name` is the name of the job
@@ -52,25 +53,27 @@ impl Job {
     }
 
     /// Executes the job in async and returns the exit code of the job
-    pub async fn execute(&mut self) -> Result<(), i32> {
-        let mut cmd = tokio::process::Command::new(self.path.clone());
-        cmd.kill_on_drop(true);
-        let mut child = cmd.spawn().expect("Failed to spawn process");
+    pub async fn execute(&mut self) {
         self.status = Status::Running;
+        let mut cmd = tokio::process::Command::new(self.path.clone());
+        cmd.kill_on_drop(true).creation_flags(0x00000008);
+        let mut child = cmd
+            .stdout(Stdio::null())
+            .stdin(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .expect("Failed to spawn process");
+
         let status = child.wait().await.expect("Failed to wait on child");
         match status.code() {
             Some(code) => {
                 self.status = Status::Exit(code);
-                if code == 0 {
-                    Ok(())
-                } else {
+                if code != 0 {
                     self.status = Status::Error(code);
-                    Err(code)
                 }
             }
             None => {
                 self.status = Status::Error(-1);
-                Err(-1)
             }
         }
     }
