@@ -17,7 +17,11 @@ async fn main() {
 
     let mut job = Job::new("trash", path);
 
-    job.execute().await.expect("TODO: panic message");
+    // start a job
+    job.start().await.expect("TODO: panic message");
+    
+    // wait for it to finish
+    job.wait().await.expect("TODO: panic message");
 
     println!("Job exited with code: {:?}", job.get_status());
 }

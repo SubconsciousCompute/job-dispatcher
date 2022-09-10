@@ -1,3 +1,4 @@
+use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::process::Stdio;
 
@@ -5,7 +6,7 @@ use std::process::Stdio;
 /// - `name` is the name of the job
 /// - `path` is the path to the executable
 /// - `status` is the status of the job and is of type [Status](enum.Status.html)
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Job {
     /// Name of the job
     name: String,
@@ -20,16 +21,36 @@ pub struct Job {
 /// - `Error(i32)`
 /// - `Exit(i32)`
 /// - `Standby`
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Status {
     /// The job is currently running
-    Running,
+    Running(Box<tokio::process::Child>),
     /// The job has exited with an error code
     Error(i32),
     /// The job has exited normally with the given exit code
     Exit(i32),
     /// The job is currently in standby and yet to be [executed](struct.Job.html#method.execute)
     Standby,
+}
+
+/// Custom Display for Status
+impl Display for Status {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match &self {
+            Status::Running(_) => {
+                write!(f, "Running")
+            }
+            Status::Error(code) => {
+                write!(f, "Error {}", code)
+            }
+            Status::Exit(code) => {
+                write!(f, "Exit {}", code)
+            }
+            Status::Standby => {
+                write!(f, "Standby")
+            }
+        }
+    }
 }
 
 /// Contains the methods for the `Job` struct
@@ -52,29 +73,47 @@ impl Job {
         }
     }
 
-    /// Executes the job in async and returns the exit code of the job
-    pub async fn execute(&mut self) {
-        self.status = Status::Running;
+    /// Start the job, see [wait](Job::wait) for further actions
+    pub async fn start(&mut self) {
         let mut cmd = tokio::process::Command::new(self.path.clone());
-        cmd.kill_on_drop(true).creation_flags(0x00000008);
-        let mut child = cmd
+        // kill operation is invoked on a spawned child process when its corresponding Child handle
+        // is dropped
+        cmd.kill_on_drop(true)
+        // .creation_flags(0x00000010)
+        // .creation_flags(0x00000008)
+        // .creation_flags(0x08000000)
+        ;
+
+        let child = cmd
             .stdout(Stdio::null())
             .stdin(Stdio::null())
             .stderr(Stdio::null())
             .spawn()
             .expect("Failed to spawn process");
 
-        let status = child.wait().await.expect("Failed to wait on child");
-        match status.code() {
-            Some(code) => {
-                self.status = Status::Exit(code);
-                if code != 0 {
-                    self.status = Status::Error(code);
+        self.status = Status::Running(Box::from(child))
+    }
+
+    /// Wait for the job to finish, best used with [spawn](https://docs.rs/tokio/latest/tokio/task/fn.spawn.html)
+    /// or [join](https://docs.rs/tokio/latest/tokio/macro.join.html)
+    pub async fn wait(&mut self) -> Result<(), i32> {
+        match &mut self.status {
+            Status::Running(child) => {
+                let status = child.wait().await.expect("Failed to wait on child");
+                match status.code() {
+                    Some(code) => {
+                        self.status = Status::Exit(code);
+                        if code != 0 {
+                            self.status = Status::Error(code);
+                        }
+                    }
+                    None => {
+                        self.status = Status::Error(-1);
+                    }
                 }
+                Ok(())
             }
-            None => {
-                self.status = Status::Error(-1);
-            }
+            _ => Err(-1),
         }
     }
 
