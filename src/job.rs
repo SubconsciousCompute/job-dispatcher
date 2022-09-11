@@ -1,3 +1,5 @@
+//! Holds our [Job](Job) struct and its methods
+
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;
 use std::process::Stdio;
@@ -29,22 +31,23 @@ pub enum Status {
     Error(i32),
     /// The job has exited normally with the given exit code
     Exit(i32),
-    /// The job is currently in standby and yet to be [executed](struct.Job.html#method.execute)
+    /// The job is currently in standby and yet to be [`started`](Job::start) or [`waited`](Job::wait)
     Standby,
 }
 
 /// Custom Display for Status
 impl Display for Status {
+    /// Display the status of the job in a human readable format
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match &self {
             Status::Running(_) => {
                 write!(f, "Running")
             }
             Status::Error(code) => {
-                write!(f, "Error {}", code)
+                write!(f, "Error({})", code)
             }
             Status::Exit(code) => {
-                write!(f, "Exit {}", code)
+                write!(f, "Exit({})", code)
             }
             Status::Standby => {
                 write!(f, "Standby")
@@ -74,7 +77,7 @@ impl Job {
     }
 
     /// Start the job, see [wait](Job::wait) for further actions
-    pub async fn start(&mut self) {
+    pub fn start(&mut self) {
         let mut cmd = tokio::process::Command::new(self.path.clone());
         // kill operation is invoked on a spawned child process when its corresponding Child handle
         // is dropped
@@ -94,8 +97,14 @@ impl Job {
         self.status = Status::Running(Box::from(child))
     }
 
+    /// Call [`start`](Job::start) before this method
+    ///
     /// Wait for the job to finish, best used with [spawn](https://docs.rs/tokio/latest/tokio/task/fn.spawn.html)
     /// or [join](https://docs.rs/tokio/latest/tokio/macro.join.html)
+    ///
+    /// Returns `Ok(())` if the job has exited normally (the status of job itself could be
+    /// [`Error`](Status::Error) but it was able to exit), otherwise returns: `Err(-1)` if the job
+    /// was not [`Running`](Status::Running)
     pub async fn wait(&mut self) -> Result<(), i32> {
         match &mut self.status {
             Status::Running(child) => {
