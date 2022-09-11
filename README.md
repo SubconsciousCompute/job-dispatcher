@@ -1,8 +1,7 @@
 # job-dispatcher
 
-
 [![Crates.io](https://img.shields.io/crates/v/job-dispatcher?style=flat-square)](https://crates.io/crates/job_dispatcher/)
-[![docs.rs](https://img.shields.io/docsrs/job-dispatcher?style=flat-square)](https://docs.rs/privacy-sexy/latest/job_dispatcher/)
+[![docs.rs](https://img.shields.io/docsrs/job-dispatcher?style=flat-square)](https://docs.rs/job-dispatcher/latest/job_dispatcher/)
 
 Rust crate to execute jobs/tasks in an async way
 
@@ -18,8 +17,8 @@ async fn main() {
     let mut job = Job::new("trash", path);
 
     // start a job
-    job.start().await.expect("TODO: panic message");
-    
+    job.start();
+
     // wait for it to finish
     job.wait().await.expect("TODO: panic message");
 
