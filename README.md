@@ -19,7 +19,10 @@ async fn main() {
     // start a job
     job.start();
 
-    // wait for it to finish
+    // check is the job is done
+    println!("Job done?: {:?}", job.try_wait());
+
+    // wait for it to finish, will error out if previous statement returns `Ok`, use `match` to handle them
     job.wait().await.expect("TODO: panic message");
 
     println!("Job exited with code: {:?}", job.get_status());

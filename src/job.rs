@@ -77,6 +77,10 @@ impl Job {
     }
 
     /// Start the job, see [wait](Job::wait) for further actions
+    ///
+    /// Also see:
+    /// - https://docs.rs/tokio/latest/tokio/process/struct.Command.html#method.spawn
+    /// - https://docs.rs/tokio/latest/tokio/process/struct.Command.html#method.kill_on_drop
     pub fn start(&mut self) {
         let mut cmd = tokio::process::Command::new(self.path.clone());
         // kill operation is invoked on a spawned child process when its corresponding Child handle
@@ -99,12 +103,14 @@ impl Job {
 
     /// Call [`start`](Job::start) before this method
     ///
-    /// Wait for the job to finish, best used with [spawn](https://docs.rs/tokio/latest/tokio/task/fn.spawn.html)
+    /// Wait (in a blocking way) for the job to finish, best used with [spawn](https://docs.rs/tokio/latest/tokio/task/fn.spawn.html)
     /// or [join](https://docs.rs/tokio/latest/tokio/macro.join.html)
     ///
     /// Returns `Ok(())` if the job has exited normally (the status of job itself could be
     /// [`Error`](Status::Error) but it was able to exit), otherwise returns: `Err(-1)` if the job
     /// was not [`Running`](Status::Running)
+    ///
+    /// - https://docs.rs/tokio/latest/tokio/process/struct.Child.html#method.wait
     pub async fn wait(&mut self) -> Result<(), i32> {
         match &mut self.status {
             Status::Running(child) => {
@@ -119,6 +125,36 @@ impl Job {
                     None => {
                         self.status = Status::Error(-1);
                     }
+                }
+                Ok(())
+            }
+            _ => Err(-1),
+        }
+    }
+
+    /// Similar to [`job::wait`](Job::wait) but in a non-blocking way, returns `Ok` if the child has
+    /// finished processing otherwise `Err`
+    ///
+    /// - https://docs.rs/tokio/latest/tokio/process/struct.Child.html#method.try_wait
+    pub fn try_wait(&mut self) -> Result<(), i32> {
+        match &mut self.status {
+            Status::Running(child) => {
+                let status = child.try_wait().expect("Failed to wait on child");
+                match status {
+                    None => {
+                        return Err(-1);
+                    }
+                    Some(status) => match status.code() {
+                        Some(code) => {
+                            self.status = Status::Exit(code);
+                            if code != 0 {
+                                self.status = Status::Error(code);
+                            }
+                        }
+                        None => {
+                            self.status = Status::Error(-1);
+                        }
+                    },
                 }
                 Ok(())
             }

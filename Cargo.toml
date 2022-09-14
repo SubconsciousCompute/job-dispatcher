@@ -1,10 +1,10 @@
 [package]
 name = "job-dispatcher"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 authors = ["sn99 <siddharthn.099@gmail.com>"]
 description = "Rust crate to execute jobs in an async way"
-keywords = ["dispatch", "async", "jobs", "task", "batchfile"]
+keywords = ["dispatch", "async", "jobs", "task", "check"]
 readme = "README.md"
 homepage = "https://github.com/sn99/job-dispatcher"
 license = "MIT"
@@ -12,7 +12,7 @@ license = "MIT"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1.21.0", features = ["process"]  }
+tokio = { version = "1.21.0", features = ["process"] }
 
 [profile.release]
 lto = true
