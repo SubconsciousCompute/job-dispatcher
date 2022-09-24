@@ -19,12 +19,20 @@ async fn main() {
     // start a job
     job.start();
 
-    // check is the job is done
+    // check is the job is done (does not block)
     println!("Job done?: {:?}", job.try_wait());
 
-    // wait for it to finish, will error out if previous statement returns `Ok`, use `match` to handle them
-    job.wait().await.expect("TODO: panic message");
+    // wait for it to finish (will block), will error out if previous statement returns `Ok`, use `match` to handle them
+    job.wait().await.expect("Job failed");
 
     println!("Job exited with code: {:?}", job.get_status());
 }
 ```
+
+## LICENSE
+
+* MIT license ([LICENSE](LICENSE.md) or http://opensource.org/licenses/MIT)
+
+## Contribution
+
+MIT licensed. Contributions are welcome!
