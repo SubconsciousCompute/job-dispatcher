@@ -1,4 +1,4 @@
-//! Holds our [Job](Job) struct and its methods
+//! Holds our [Job](Job) struct and its methods and functions to execute jobs in an async way
 
 use std::fmt::{Display, Formatter};
 use std::path::PathBuf;

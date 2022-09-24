@@ -7,18 +7,18 @@
 //!
 //! #[tokio::main]
 //! async fn main() {
-//! let path = "C:\\Users\\sn99\\Downloads\\privacy-script.bat";
+//!     let path = "C:\\Users\\sn99\\Downloads\\privacy-script.bat";
 //!
 //! let mut job = Job::new("trash", path);
 //!
 //! // start a job
-//! job.start();
+//!     job.start();
 //!
-//! // check is the job is done
-//! println!("Job done?: {:?}", job.try_wait());
+//! // check is the job is done (does not block)
+//!     println!("Job done?: {:?}", job.try_wait());
 //!
-//! // wait for it to finish, will error out if previous statement returns `Ok`
-//! job.wait().await.expect("TODO: panic message");
+//! // wait for it to finish (will block), will error out if previous statement returns `Ok`, use `match` to handle them
+//!     job.wait().await.expect("Job failed");
 //!
 //! println!("Job exited with code: {:?}", job.get_status());
 //! }
